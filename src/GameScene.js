@@ -2,6 +2,9 @@ import Phaser from 'phaser'
 
 const GROUND_KEY = 'ground'
 const DUDE_KEY = 'dude'
+const STAR_KEY = 'star'
+const BOMB_KEY = 'bomb'
+
 
 export default class GameScene extends Phaser.Scene {
 	constructor() {
@@ -9,13 +12,14 @@ export default class GameScene extends Phaser.Scene {
         super("game scene") // unique key to help figure out the scene by parent
         this.player = undefined;
         this.platforms = undefined;
+		this.cursors = undefined;
     }
 
 	preload() {
         this.load.image('sky', 'assets/sky.png');
         this.load.image(GROUND_KEY, 'assets/platform.png');
         this.load.image('star', 'assets/star.png');
-        this.load.image('bomb', 'assets/bomb.png');
+		this.load.image('bomb', 'assets/bomb.png');
         this.load.spritesheet(DUDE_KEY, 
             'assets/dude.png',
             { frameWidth: 32, frameHeight: 48 }
@@ -24,12 +28,64 @@ export default class GameScene extends Phaser.Scene {
 
 	create() {
 
-        this.add.image(400, 300, 'sky');
-        // this.add.image(400, 300, 'star');
         this.createPlatforms();
         this.createPlayer();
         this.physics.add.collider(this.player, this.platforms);
+		this.cursors = this.input.keyboard.createCursorKeys()
+		const stars = this.createStars();
+		this.physics.add.collider(stars, this.platforms)
+		//overlap(object1, object2 [, collideCallback] [, processCallback boolean] [, callbackContext])
+		this.physics.add.overlap(this.player, stars, this.collectStar, null, this)
 
+
+	}
+
+	collectStar(player, star){
+		console.log("star collected")
+		// hide, disable the star
+		star.disableBody(true, true)
+	}
+
+	createStars(){
+		// Creates 12 stars evenly spaced by 70 pixels
+		const stars = this.physics.add.group({
+			key: STAR_KEY,
+			repeat: 11,
+			setXY: { x: 12, y: 0, stepX: 70 }
+		})
+
+		stars.children.iterate((child) => {
+			// bounce on first impact 	
+			child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.5))
+		})
+
+		return stars
+	}
+
+	update() {
+		if (this.cursors.left.isDown)
+			{
+				this.player.setVelocityX(-160)
+	
+				this.player.anims.play('left', true)
+			}
+			else if (this.cursors.right.isDown)
+			{
+				this.player.setVelocityX(160)
+	
+				this.player.anims.play('right', true)
+			}
+			else
+			{
+				this.player.setVelocityX(0)
+	
+				this.player.anims.play('turn')
+			}
+	
+			if (this.cursors.up.isDown && this.player.body.touching.down)
+			{
+				this.player.setVelocityY(-330)
+			}
 	}
 
     createPlatforms(){
